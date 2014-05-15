@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.mock.authentication;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.junit.Test;
@@ -26,6 +27,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -35,7 +39,7 @@ public class AuthzAuthenticationManagerVerificationMockMvcTests {
 
     @Autowired
     AnnotationConfigWebApplicationContext webApplicationContext;
-
+    
     /**
      * We have a condition in the AutzhAuthenticationManager that automatically
      * fails a password validation for zero length password.
@@ -44,7 +48,13 @@ public class AuthzAuthenticationManagerVerificationMockMvcTests {
      * @throws Exception
      */
     @Test
-    public void verifyAuthzAuthenticationManagerClass() throws Exception {
-        assertEquals(AuthzAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
+    public void verifyAuthzAuthenticationManagerClassInStandardProfile() throws Exception {
+        String[] profiles = webApplicationContext.getEnvironment().getActiveProfiles();
+        List<String> plist = Arrays.asList(profiles);
+        if (plist.contains("ldap") || plist.contains("keystone")) {
+            assertEquals(ChainedAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
+        } else {
+            assertEquals(AuthzAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
+        }
     }
 }
