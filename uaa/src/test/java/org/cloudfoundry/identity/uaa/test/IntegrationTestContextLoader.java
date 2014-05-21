@@ -19,9 +19,15 @@ import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.context.SmartContextLoader;
 import org.springframework.test.context.web.WebMergedContextConfiguration;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class IntegrationTestContextLoader implements SmartContextLoader {
+
+    public static final String PROFILE_KEY = "spring.profiles.active";
 
     @Override
     public void processContextConfiguration(ContextConfigurationAttributes configAttributes) {
@@ -37,7 +43,20 @@ public class IntegrationTestContextLoader implements SmartContextLoader {
         }
 
         AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
-
+        if (mergedConfig.getActiveProfiles()!=null && mergedConfig.getActiveProfiles().length>0) {
+            Set<String> profiles = new HashSet<>();
+            
+              //TODO this would merge forced and command line (system property) profiles
+//            if (System.getProperty(PROFILE_KEY)!=null) {
+//                profiles = StringUtils.commaDelimitedListToSet(System.getProperty(PROFILE_KEY));
+//            }
+            for (String profile : mergedConfig.getActiveProfiles()) {
+                profiles.add(profile);
+            }
+            
+            String[] activeProfiles = profiles.toArray(new String[0]);
+            context.getEnvironment().setActiveProfiles(activeProfiles);
+        }
         ApplicationContext parent = mergedConfig.getParentApplicationContext();
         if (parent != null) {
             context.setParent(parent);
