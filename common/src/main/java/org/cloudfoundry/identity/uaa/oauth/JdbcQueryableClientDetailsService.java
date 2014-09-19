@@ -27,7 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.JdbcClientDetailsService;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
