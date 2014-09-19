@@ -121,6 +121,7 @@
 
     <bean id="loginServerTokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
         <constructor-arg ref="loginAuthenticationMgr" />
+        <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
