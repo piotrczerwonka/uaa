@@ -49,7 +49,6 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -112,7 +111,7 @@ public class UserManagedAuthzApprovalHandlerTests {
 
     @Test
     public void testNoScopeApproval() {
-        AuthorizationRequest request = new AuthorizationRequest(new HashMap<String, String>());
+        AuthorizationRequest request = new AuthorizationRequest("testclient", Collections.<String>emptySet());
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
         // also not approved any scopes. Approved.
