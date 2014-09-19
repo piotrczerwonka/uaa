@@ -25,7 +25,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 

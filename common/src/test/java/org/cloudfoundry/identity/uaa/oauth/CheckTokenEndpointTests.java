@@ -34,7 +34,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.DefaultAuthorizationRequest;
-import org.springframework.security.oauth2.provider.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 /**
