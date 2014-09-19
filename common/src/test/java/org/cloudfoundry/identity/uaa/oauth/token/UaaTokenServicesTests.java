@@ -197,7 +197,6 @@ public class UaaTokenServicesTests {
     @Test(expected = InvalidGrantException.class)
     public void testInvalidGrantType() {
         AuthorizationRequest ar = mock(AuthorizationRequest.class);
-        when(ar.getRequestParameters()).thenReturn(new HashMap<String, String>());
         tokenServices.refreshAccessToken("", requestFactory.createTokenRequest(ar,"dsdada"));
     }
 
@@ -205,9 +204,8 @@ public class UaaTokenServicesTests {
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();
         map.put("grant_type","refresh_token");
-        AuthorizationRequest ar = mock(AuthorizationRequest.class);
-        when(ar.getRequestParameters()).thenReturn(map);
-        tokenServices.refreshAccessToken("dasdasdasdasdas", requestFactory.createTokenRequest(ar,"refresh_token"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
+        tokenServices.refreshAccessToken("dasdasdasdasdas", requestFactory.createTokenRequest(authorizationRequest,"refresh_token"));
     }
 
 
@@ -724,7 +722,7 @@ public class UaaTokenServicesTests {
         reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2Authentication reducedScopeAuthentication = new OAuth2Authentication(reducedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
-        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAzParameters,clientDetailsService.loadClientByClientId(reducedScopeAuthentication.getOAuth2Request().getClientId())));
+        OAuth2AccessToken reducedScopeAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(reducedScopeAuthorizationRequest,"refresh_token"));
 
         // AT should have the new scopes, RT should be the same
         Jwt newTokenJwt = JwtHelper.decodeAndVerify(reducedScopeAccessToken.getValue(), signerProvider.getVerifier());
@@ -789,7 +787,7 @@ public class UaaTokenServicesTests {
         expandedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),requestFactory.createTokenRequest(refreshAzParameters,clientDetailsService.loadClientByClientId(expandedScopeAuthentication.getOAuth2Request().getClientId())));
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),requestFactory.createTokenRequest(expandedScopeAuthorizationRequest,"refresh_token"));
     }
 
     @Test
@@ -863,7 +861,7 @@ public class UaaTokenServicesTests {
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAzParameters,clientDetailsService.loadClientByClientId(CLIENT_ID)));
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
     }
 
     @Test(expected = InvalidTokenException.class)

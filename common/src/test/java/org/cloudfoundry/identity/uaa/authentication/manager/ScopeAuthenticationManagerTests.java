@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -27,6 +28,7 @@ import javax.naming.AuthenticationException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -47,11 +49,14 @@ public class ScopeAuthenticationManagerTests extends TestCase {
         clientCredentials = new HashMap<>();
         clientCredentials.put("client_id","login");
         clientCredentials.put("grant_type","client_credentials");
-        clientCredentials.put("scope","oauth.login,oauth.approval");
+        clientCredentials.put("scope","oauth.login oauth.approval");
         ClientDetails loginClient = mock(ClientDetails.class);
+        when(loginClient.getScope()).thenReturn(new HashSet<>(Arrays.asList("oauth.login","oauth.approval")));
         ClientDetailsService service = mock(ClientDetailsService.class);
         when(service.loadClientByClientId("login")).thenReturn(loginClient);
-        request = new DefaultOAuth2RequestFactory(service).createAuthorizationRequest(clientCredentials).createOAuth2Request();
+        AuthorizationRequest authorizationRequest = new DefaultOAuth2RequestFactory(service).createAuthorizationRequest(clientCredentials);
+        authorizationRequest.setApproved(true);
+        request = authorizationRequest.createOAuth2Request();
     }
 
     public void testPasswordAuthenticate() throws Exception {
