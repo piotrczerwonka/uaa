@@ -63,6 +63,7 @@
 
     <bean id="tokenEndpointAuthenticationFilter" class="org.springframework.security.oauth2.provider.endpoint.TokenEndpointAuthenticationFilter">
         <constructor-arg ref="authzAuthenticationMgr" />
+        <constructor-arg ref="authorizationRequestManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
