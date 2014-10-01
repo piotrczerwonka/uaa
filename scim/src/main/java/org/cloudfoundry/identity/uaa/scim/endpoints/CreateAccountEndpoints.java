@@ -18,10 +18,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
@@ -30,11 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -47,6 +45,7 @@ public class CreateAccountEndpoints {
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
+    private static final int CREATE_ACCOUNT_LIFETIME = 30 * 60 * 1000;
 
     public CreateAccountEndpoints(ObjectMapper objectMapper, QueryableResourceManager<ClientDetails> clientDetailsService, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
         this.objectMapper = objectMapper;
@@ -56,65 +55,58 @@ public class CreateAccountEndpoints {
     }
 
     @RequestMapping(value = "/create_account", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> changePassword(@RequestBody AccountCreation accountCreation) throws IOException {
-        ResponseEntity<Map<String,String>> responseEntity;
+    public ResponseEntity<Map<String,String>> createAccount(@RequestBody AccountCreation accountCreation) throws IOException {
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + accountCreation.getEmail() + "\" and origin eq \"" + Origin.UAA + "\"");
+        ScimUser user;
 
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(accountCreation.getCode());
-        if (expiringCode != null) {
-            try {
-                Map<String, String> data = objectMapper.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
-                String email = data.get("username");
-                String clientId = data.get("client_id");
-                ClientDetails clientDetails = clientDetailsService.retrieve(clientId);
-                String redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
-
-                ScimUser user = scimUserProvisioning.createUser(newScimUser(email), accountCreation.getPassword());
-                user = scimUserProvisioning.verifyUser(user.getId(), -1);
-
-                Map<String, String> response = accountCreationResponse(user, redirectLocation);
-                responseEntity = new ResponseEntity<>(response, CREATED);
-            } catch (ScimResourceAlreadyExistsException e) {
-                responseEntity = new ResponseEntity<>(CONFLICT);
+        if (!results.isEmpty()) {
+            if(results.get(0).isVerified()) {
+                return new ResponseEntity<>(CONFLICT);
+            } else {
+                user = results.get(0);
             }
         } else {
-            responseEntity = new ResponseEntity<>(BAD_REQUEST);
+            user = scimUserProvisioning.createUser(newScimUser(accountCreation.getEmail()), accountCreation.getPassword());
         }
 
-        return responseEntity;
-    }
+        Map<String,String> codeData = new HashMap<>();
+        codeData.put("user_id", user.getId());
+        codeData.put("client_id", accountCreation.getClientId());
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(new ObjectMapper().writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + CREATE_ACCOUNT_LIFETIME));
 
-    private Map<String, String> accountCreationResponse(ScimUser user, String redirectLocation) {
-        Map<String, String> response = new HashMap<>();
+        Map<String,String> response = new HashMap<>();
         response.put("user_id", user.getId());
-        response.put("username", user.getUserName());
-        response.put("redirect_location", redirectLocation);
-        return response;
+        response.put("code", expiringCode.getCode());
+
+        return new ResponseEntity<>(response, CREATED);
     }
 
     private ScimUser newScimUser(String emailAddress) {
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(emailAddress);
-        ScimUser.Email email = new ScimUser.Email();
-        email.setPrimary(true);
-        email.setValue(emailAddress);
-        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setPrimaryEmail(emailAddress);
         scimUser.setOrigin(Origin.UAA);
+        scimUser.setVerified(false);
+        scimUser.setActive(false);
         return scimUser;
     }
 
     private static class AccountCreation {
-        @JsonProperty("code")
-        private String code;
+        @JsonProperty("email")
+        private String email;
 
         @JsonProperty("password")
         private String password;
 
-        public String getCode() {
-            return code;
+        @JsonProperty("client_id")
+        private String clientId;
+
+        public String getEmail() {
+            return email;
         }
 
-        public void setCode(String code) {
-            this.code = code;
+        public void setEmail(String email) {
+            this.email = email;
         }
 
         public String getPassword() {
@@ -123,6 +115,14 @@ public class CreateAccountEndpoints {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
         }
     }
 }
