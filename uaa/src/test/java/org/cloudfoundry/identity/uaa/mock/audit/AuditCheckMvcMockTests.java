@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.login.test.UaaRestTemplateBeanFactoryPostProcessor;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -46,6 +47,7 @@ import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -54,6 +56,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -64,6 +67,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 import scala.actors.threadpool.Arrays;
 
 import java.util.List;
@@ -85,7 +89,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class AuditCheckMvcMockTests {
 
-    AnnotationConfigWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext webApplicationContext;
     ClientRegistrationService clientRegistrationService;
     private ApplicationListener<AbstractUaaEvent> listener;
     private MockMvc mockMvc;
@@ -95,21 +99,23 @@ public class AuditCheckMvcMockTests {
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new AnnotationConfigWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializer().initialize(webApplicationContext);
-        webApplicationContext.register(DefaultIntegrationTestConfig.class);
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(new MockEnvironment());
+        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
+        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        webApplicationContext.addBeanFactoryPostProcessor(new UaaRestTemplateBeanFactoryPostProcessor());
         webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+            .addFilter(springSecurityFilterChain)
+            .build();
+
         clientRegistrationService = (ClientRegistrationService)webApplicationContext.getBean("clientRegistrationService");
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         webApplicationContext.addApplicationListener(listener);
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         webApplicationContext.addApplicationListener(testListener);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
 
         testClient = new TestClient(mockMvc);
         testAccounts = UaaTestAccounts.standard(null);
@@ -168,7 +174,7 @@ public class AuditCheckMvcMockTests {
         //success means a 302 to / (failure is 302 to /login?error...)
         mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", "/login?error=true"));
+                .andExpect(header().string("Location", "/login?error=login_failure"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
@@ -261,7 +267,7 @@ public class AuditCheckMvcMockTests {
         //success means a 302 to / (failure is 302 to /login?error...)
         mockMvc.perform(loginPost)
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", "/login?error=true"));
+                .andExpect(header().string("Location", "/login?error=login_failure"));
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(2)).onApplicationEvent(captor.capture());
