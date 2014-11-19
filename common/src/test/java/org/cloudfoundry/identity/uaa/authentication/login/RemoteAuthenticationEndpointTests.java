@@ -17,7 +17,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.junit.Before;
@@ -61,14 +60,6 @@ public class RemoteAuthenticationEndpointTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
         assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    public void accountNotVerifiedExceptionGives403Status() throws Exception {
-        when(am.authenticate(any(Authentication.class))).thenThrow(new AccountNotVerifiedException("failed"));
-        @SuppressWarnings("rawtypes")
-        ResponseEntity response = (ResponseEntity) endpoint.authenticate(new MockHttpServletRequest(), "joe","joespassword");
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 
     @Test

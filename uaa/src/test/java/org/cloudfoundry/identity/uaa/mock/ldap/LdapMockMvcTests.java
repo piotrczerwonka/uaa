@@ -19,9 +19,7 @@ import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.After;
@@ -32,7 +30,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockServletContext;
@@ -127,7 +124,6 @@ public class LdapMockMvcTests {
     TestClient testClient;
     JdbcTemplate jdbcTemplate;
     JdbcScimGroupProvisioning gDB;
-    JdbcScimUserProvisioning uDB;
 
     private String ldapProfile;
     private String ldapGroup;
@@ -161,7 +157,6 @@ public class LdapMockMvcTests {
         LimitSqlAdapter limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
     }
 
     @After
@@ -338,10 +333,6 @@ public class LdapMockMvcTests {
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {
-        return performAuthentication(username, password, HttpStatus.OK);
-    }
-
-    private MvcResult performAuthentication(String username, String password, HttpStatus status) throws Exception {
         MockHttpServletRequestBuilder post =
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
@@ -349,7 +340,7 @@ public class LdapMockMvcTests {
                 .param("password", password);
 
         return mockMvc.perform(post)
-            .andExpect(status().is(status.value()))
+            .andExpect(status().isOk())
             .andReturn();
     }
 
@@ -489,22 +480,6 @@ public class LdapMockMvcTests {
             "internal.read",
         };
         doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(username,password,list);
-    }
-
-    @Test
-    public void testStopIfException() throws Exception {
-        Assume.assumeTrue(ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml"));
-
-        setUp();
-
-        ScimUser user = new ScimUser();
-        user.setUserName("user@example.com");
-        user.addEmail("user@example.com");
-        user.setVerified(false);
-        user = uDB.createUser(user, "n1cel0ngp455w0rd");
-        assertNotNull(user.getId());
-
-        performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
     }
 
     public void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) throws Exception {

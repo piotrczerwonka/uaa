@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
@@ -68,7 +67,6 @@ import scala.actors.threadpool.Arrays;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
@@ -149,8 +147,7 @@ public class AuditCheckMvcMockTests {
 
         mockMvc.perform(loginPost)
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("\"username\":\"" + testAccounts.getUserName())))
-            .andExpect(content().string(containsString("\"email\":\"" + testAccounts.getEmail())));
+            .andExpect(content().string("{\"username\":\"" + testAccounts.getUserName() + "\",\"email\":\"" + testAccounts.getEmail() + "\"}"));
 
         ArgumentCaptor<UserAuthenticationSuccessEvent> captor  = ArgumentCaptor.forClass(UserAuthenticationSuccessEvent.class);
         verify(listener).onApplicationEvent(captor.capture());
@@ -180,31 +177,6 @@ public class AuditCheckMvcMockTests {
     }
 
     @Test
-    public void unverifiedUserAuthenticationTest() throws Exception {
-        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "uaa.admin,scim.write");
-
-        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble", false);
-        String mollyId = molly.getId();
-
-        MockHttpServletRequestBuilder loginPost = post("/authenticate")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .param("username", molly.getUserName())
-            .param("password", "wobble");
-        mockMvc.perform(loginPost)
-            .andExpect(status().isForbidden());
-
-        ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
-
-        List<AbstractUaaEvent> allValues = captor.getAllValues();
-        UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
-        assertEquals(molly.getUserName(), event.getUser().getUsername());
-    }
-
-    @Test
     public void invalidPasswordLoginAuthenticateEndpointTest() throws Exception {
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -230,7 +202,7 @@ public class AuditCheckMvcMockTests {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non");
         String jacobId = jacob.getId();
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
@@ -667,9 +639,9 @@ public class AuditCheckMvcMockTests {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
-        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null, true);
-        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null, true);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non");
+        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non");
+        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non");
 
 
         ScimGroup group = new ScimGroup("testgroup");
@@ -756,13 +728,11 @@ public class AuditCheckMvcMockTests {
 
     }
 
-    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password, Boolean verified) throws Exception {
+    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email) throws Exception {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstname, lastname));
         user.addEmail(email);
-        user.setPassword(password);
-        user.setVerified(verified);
 
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(MediaType.APPLICATION_JSON_VALUE)

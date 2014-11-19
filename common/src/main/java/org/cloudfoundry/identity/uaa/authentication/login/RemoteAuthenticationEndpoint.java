@@ -21,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import com.googlecode.flyway.core.util.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -82,9 +81,6 @@ public class RemoteAuthenticationEndpoint {
             }
             processAdditionalInformation(responseBody, a);
             status = HttpStatus.OK;
-        } catch (AccountNotVerifiedException e) {
-            responseBody.put("error", "account not verified");
-            status = HttpStatus.FORBIDDEN;
         } catch (AuthenticationException e) {
             responseBody.put("error", "authentication failed");
         } catch (Exception e) {
