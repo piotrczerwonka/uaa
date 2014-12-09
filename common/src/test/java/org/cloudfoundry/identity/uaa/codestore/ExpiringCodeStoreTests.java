@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collection;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -19,40 +24,20 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Collection;
-
-import com.googlecode.flyway.core.Flyway;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestContextManager;
-import org.springframework.util.ReflectionUtils;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(Parameterized.class)
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class ExpiringCodeStoreTests {
+public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     private ExpiringCodeStore expiringCodeStore;
     private Class expiringCodeStoreClass;
@@ -68,15 +53,9 @@ public class ExpiringCodeStoreTests {
         });
     }
 
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
     @Before
-    public void setUp() throws Exception {
+    public void initExpiringCodeStoreTests() throws Exception {
         expiringCodeStore = (ExpiringCodeStore) expiringCodeStoreClass.newInstance();
-
-        TestContextManager testContextManager = new TestContextManager(getClass());
-        testContextManager.prepareTestInstance(this);
 
         if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
 
@@ -86,19 +65,6 @@ public class ExpiringCodeStoreTests {
             if (expiringCodeStore instanceof JdbcExpiringCodeStore) {
                 ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
             }
-        }
-    }
-
-
-    @Autowired
-    private Flyway flyway;
-
-    @After
-    public void cleanUp() throws Exception {
-        flyway.clean();
-        Method m = ReflectionUtils.findMethod(jdbcTemplate.getDataSource().getClass(), "close");
-        if (m != null) {
-            ReflectionUtils.invokeMethod(m, jdbcTemplate.getDataSource());
         }
     }
 

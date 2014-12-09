@@ -12,45 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collections;
 import java.util.UUID;
 
-import javax.sql.DataSource;
-
-import com.googlecode.flyway.core.Flyway;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- * @author Vidya Valmikinathan
- */
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcUaaUserDatabaseTests {
-
-    @Autowired
-    private DataSource dataSource;
+public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     private JdbcUaaUserDatabase db;
 
@@ -94,14 +71,7 @@ public class JdbcUaaUserDatabaseTests {
 
     }
 
-    @Autowired
-    private Flyway flyway;
-
-    @After
-    public void cleanDb() throws Exception {
-        flyway.clean();
-    }
-
+    @Test
     public void getValidUserSucceeds() {
         UaaUser joe = db.retrieveUserByName("joe",Origin.UAA);
         assertNotNull(joe);

@@ -12,48 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Arrays;
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import com.googlecode.flyway.core.Flyway;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class JdbcScimGroupProvisioningTests {
-
-    @Autowired
-    private DataSource dataSource;
-
-    private JdbcTemplate template;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
+public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning dao;
 
@@ -64,11 +38,8 @@ public class JdbcScimGroupProvisioningTests {
     private int existingGroupCount = -1;
 
     @Before
-    public void createDatasource() {
-
-        template = new JdbcTemplate(dataSource);
-
-        dao = new JdbcScimGroupProvisioning(template, new JdbcPagingListFactory(template, limitSqlAdapter));
+    public void initJdbcScimGroupProvisioningTests() {
+        dao = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
         addGroup("g1", "uaa.user");
         addGroup("g2", "uaa.admin");
@@ -76,17 +47,8 @@ public class JdbcScimGroupProvisioningTests {
 
         validateGroupCount(3);
     }
-
-    @Autowired
-    private Flyway flyway;
-
-    @After
-    public void cleanDb() throws Exception {
-        flyway.clean();
-    }
-
     private void validateGroupCount(int expected) {
-        existingGroupCount = template.queryForInt("select count(id) from groups");
+        existingGroupCount = jdbcTemplate.queryForInt("select count(id) from groups");
         assertEquals(expected, existingGroupCount);
     }
 
@@ -216,8 +178,8 @@ public class JdbcScimGroupProvisioningTests {
     }
 
     private void addGroup(String id, String name) {
-        TestUtils.assertNoSuchUser(template, "id", id);
-        template.execute(String.format(addGroupSqlFormat, id, name));
+        TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name));
     }
 
     @Test(expected = IllegalArgumentException.class)

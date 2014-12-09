@@ -12,48 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import com.googlecode.flyway.core.Flyway;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.IfProfileValue;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
-@RunWith(SpringJUnit4ClassRunner.class)
-@ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
-public class ScimExternalGroupBootstrapTests {
-
-    @Autowired
-    private DataSource dataSource;
-
-    @Autowired
-    private LimitSqlAdapter limitSqlAdapter;
-
-    private JdbcTemplate template;
+public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning gDB;
 
@@ -62,11 +35,10 @@ public class ScimExternalGroupBootstrapTests {
     private ScimExternalGroupBootstrap bootstrap;
 
     @Before
-    public void setup() {
-        template = new JdbcTemplate(dataSource);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(template, pagingListFactory);
+    public void initScimExternalGroupBootstrapTests() {
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll().size());
 
@@ -74,14 +46,6 @@ public class ScimExternalGroupBootstrapTests {
         gDB.create(new ScimGroup("acme.dev"));
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
-    }
-
-    @Autowired
-    private Flyway flyway;
-
-    @After
-    public void cleanDb() throws Exception {
-        flyway.clean();
     }
 
     @Test
