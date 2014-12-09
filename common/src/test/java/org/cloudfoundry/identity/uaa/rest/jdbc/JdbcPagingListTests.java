@@ -23,6 +23,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +43,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcPagingListTests {
 
@@ -69,9 +69,13 @@ public class JdbcPagingListTests {
 
     }
 
+    @Autowired
+    private Flyway flyway;
+
     @After
-    public void clear() throws Exception {
+    public void cleanDb() throws Exception {
         template.execute("drop table foo");
+        flyway.clean();
     }
 
     @Test

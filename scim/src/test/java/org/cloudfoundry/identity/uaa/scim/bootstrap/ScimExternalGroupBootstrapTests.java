@@ -20,6 +20,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -43,11 +44,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ScimExternalGroupBootstrapTests {
-
-    Log logger = LogFactory.getLog(getClass());
 
     @Autowired
     private DataSource dataSource;
@@ -78,9 +76,12 @@ public class ScimExternalGroupBootstrapTests {
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
     }
 
+    @Autowired
+    private Flyway flyway;
+
     @After
-    public void cleanup() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups", "group_membership", "external_group_mapping");
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     @Test

@@ -16,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -34,7 +35,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimClientDetailsServiceTests {
 
@@ -78,9 +78,12 @@ public class JdbcScimClientDetailsServiceTests {
 
     }
 
+    @Autowired
+    private Flyway flyway;
+
     @After
-    public void tearDown() throws Exception {
-        TestUtils.deleteFrom(dataSource, "oauth_client_details");
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     @Test

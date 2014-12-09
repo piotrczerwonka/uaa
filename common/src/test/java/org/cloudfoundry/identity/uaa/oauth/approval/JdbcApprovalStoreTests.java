@@ -23,6 +23,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -48,7 +49,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcApprovalStoreTests {
     @Autowired
@@ -77,6 +77,14 @@ public class JdbcApprovalStoreTests {
         addApproval("u1", "c1", "uaa.user", 6000, APPROVED);
         addApproval("u1", "c2", "uaa.admin", 12000, DENIED);
         addApproval("u2", "c1", "openid", 6000, APPROVED);
+    }
+
+    @Autowired
+    private Flyway flyway;
+
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {

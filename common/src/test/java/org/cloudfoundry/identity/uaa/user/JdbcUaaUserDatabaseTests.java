@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
@@ -45,7 +46,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcUaaUserDatabaseTests {
 
@@ -94,12 +94,14 @@ public class JdbcUaaUserDatabaseTests {
 
     }
 
+    @Autowired
+    private Flyway flyway;
+
     @After
-    public void clearDb() throws Exception {
-        TestUtils.deleteFrom(dataSource, "users");
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
-    @Test
     public void getValidUserSucceeds() {
         UaaUser joe = db.retrieveUserByName("joe",Origin.UAA);
         assertNotNull(joe);

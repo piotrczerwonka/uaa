@@ -21,9 +21,11 @@ import java.sql.ResultSet;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +70,15 @@ public class TableAndColumnNormalizationTest {
             }
         }
     }
+
+    @Autowired
+    private Flyway flyway;
+
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
+    }
+
 
     @Test
     public void checkColumns() throws Exception {

@@ -26,6 +26,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
@@ -50,14 +51,11 @@ import org.springframework.util.ReflectionUtils;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(Parameterized.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class ExpiringCodeStoreTests {
 
     private ExpiringCodeStore expiringCodeStore;
     private Class expiringCodeStoreClass;
-
-    Log logger = LogFactory.getLog(getClass());
 
     public ExpiringCodeStoreTests(Class expiringCodeStoreClass) {
         this.expiringCodeStoreClass = expiringCodeStoreClass;
@@ -91,8 +89,13 @@ public class ExpiringCodeStoreTests {
         }
     }
 
+
+    @Autowired
+    private Flyway flyway;
+
     @After
     public void cleanUp() throws Exception {
+        flyway.clean();
         Method m = ReflectionUtils.findMethod(jdbcTemplate.getDataSource().getClass(), "close");
         if (m != null) {
             ReflectionUtils.invokeMethod(m, jdbcTemplate.getDataSource());

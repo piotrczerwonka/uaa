@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
@@ -51,11 +52,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class LdapGroupMappingAuthorizationManagerTests {
-
-    Log logger = LogFactory.getLog(getClass());
 
     @Autowired
     private DataSource dataSource;
@@ -115,9 +113,12 @@ public class LdapGroupMappingAuthorizationManagerTests {
         nonLdapGroups = new HashSet<>(Arrays.asList(new SimpleGrantedAuthority[] {sa1,sa2,sa3}));
     }
 
+    @Autowired
+    private Flyway flyway;
+
     @After
-    public void cleanup() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups", "external_group_mapping");
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     private String getGroupId(String groupName) {

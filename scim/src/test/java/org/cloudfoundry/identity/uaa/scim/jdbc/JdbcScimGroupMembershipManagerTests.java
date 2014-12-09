@@ -28,6 +28,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -53,11 +54,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimGroupMembershipManagerTests {
-
-    Log logger = LogFactory.getLog(getClass());
 
     @Autowired
     private DataSource dataSource;
@@ -102,6 +100,14 @@ public class JdbcScimGroupMembershipManagerTests {
         addUser("m3", "test");
 
         validateCount(0);
+    }
+
+    @Autowired
+    private Flyway flyway;
+
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     private void addMember(String gId, String mId, String mType, String authorities) {

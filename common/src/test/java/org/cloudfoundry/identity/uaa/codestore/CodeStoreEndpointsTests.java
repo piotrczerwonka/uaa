@@ -22,7 +22,9 @@ import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +39,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class CodeStoreEndpointsTests {
 
@@ -54,6 +55,15 @@ public class CodeStoreEndpointsTests {
         expiringCodeStore = new JdbcExpiringCodeStore(jdbcTemplate.getDataSource());
         codeStoreEndpoints.setExpiringCodeStore(expiringCodeStore);
     }
+
+    @Autowired
+    private Flyway flyway;
+
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
+    }
+
 
     @Test
     public void testGenerateCode() throws Exception {

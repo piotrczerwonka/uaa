@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -43,11 +44,8 @@ import org.springframework.util.StringUtils;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class JdbcScimGroupProvisioningTests {
-
-    Log logger = LogFactory.getLog(getClass());
 
     @Autowired
     private DataSource dataSource;
@@ -79,13 +77,12 @@ public class JdbcScimGroupProvisioningTests {
         validateGroupCount(3);
     }
 
-    @After
-    public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(dataSource, "groups");
-        validateGroupCount(0);
+    @Autowired
+    private Flyway flyway;
 
-        TestUtils.deleteFrom(dataSource, "group_membership");
-        assertEquals(0, template.queryForInt("select count(*) from group_membership"));
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     private void validateGroupCount(int expected) {
@@ -105,7 +102,6 @@ public class JdbcScimGroupProvisioningTests {
     @Test
     public void canRetrieveGroups() throws Exception {
         List<ScimGroup> groups = dao.retrieveAll();
-        logger.debug(groups);
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
             validateGroup(g, null);
@@ -175,7 +171,6 @@ public class JdbcScimGroupProvisioningTests {
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g);
-        logger.debug(g);
         validateGroupCount(4);
         validateGroup(g, "test.1");
     }
@@ -201,7 +196,6 @@ public class JdbcScimGroupProvisioningTests {
     @Test
     public void canUpdateGroup() throws Exception {
         ScimGroup g = dao.retrieve("g1");
-        logger.debug(g);
         assertEquals("uaa.user", g.getDisplayName());
 
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);

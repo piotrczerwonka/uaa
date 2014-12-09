@@ -26,14 +26,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authorization.ExternalGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.NullSafeSystemProfileValueSource;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -55,7 +58,6 @@ import org.springframework.util.StringUtils;
 
 @ContextConfiguration(locations = { "classpath:spring/env.xml", "classpath:spring/data-source.xml" })
 @RunWith(SpringJUnit4ClassRunner.class)
-@IfProfileValue(name = "spring.profiles.active", values = { "", "default", "hsqldb", "test,postgresql", "test,mysql","test,oracle" })
 @ProfileValueSourceConfiguration(NullSafeSystemProfileValueSource.class)
 public class UaaAuthorizationRequestManagerTests {
 
@@ -73,6 +75,14 @@ public class UaaAuthorizationRequestManagerTests {
         factory = new UaaAuthorizationRequestManager(clientDetailsService);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
+    }
+
+    @Autowired
+    private Flyway flyway;
+
+    @After
+    public void cleanDb() throws Exception {
+        flyway.clean();
     }
 
     @Test
